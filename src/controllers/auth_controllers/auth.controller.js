@@ -55,8 +55,8 @@ class AuthController {
                 });
             }
 
-           // hash bassword
-           const hashPassword = await bcrypt.hash(password, 10)
+            // hash bassword
+            const hashPassword = await bcrypt.hash(password, 10)
 
             // Create a new item in the inventory
             const user = await new userModel({
@@ -88,11 +88,9 @@ class AuthController {
 
 
     // Sign in Method
-   async signIn(req, res) { 
-                try {
-
+    async signIn(req, res) {
+        try {
             const body = await req.body;
-
             // Confirm The Request.body is not empty
             if (!body) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -133,27 +131,27 @@ class AuthController {
                 });
             }
 
-           // hash bassword
-           const passwordMatch = await bcrypt.compare(password, user.password);
-           if (!passwordMatch){
-           return res.status(StatusCodes.BAD_REQUEST).json({
+            // hash bassword
+            const passwordMatch = await bcrypt.compare(password, user.password);
+            if (!passwordMatch) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
                     status: "error",
                     status_code: StatusCodes.BAD_REQUEST,
                     message: "invalid credentials - password is incorrect",
                 });
-           }
+            }
 
 
-           const data = {
-            userId: user.id,
-            email: user.email,
-           }
-           const accessToken = await authenticationUtils.generateJwtToken(data);
+            const data = {
+                userId: user.id,
+                email: user.email,
+            }
+            const accessToken = await authenticationUtils.generateJwtToken(data);
 
             return res.status(StatusCodes.OK).json({
                 status: "success",
                 status_code: StatusCodes.OK,
-                message: "user registered successfully",
+                message: "user signed in successfully",
                 data: {
                     accessToken,
                 }
@@ -168,7 +166,77 @@ class AuthController {
     }
 
     // Enter New Paassword
-    enterNewPassword(req, res) { }
+    async enterNewPassword(req, res) {
+
+        try {
+            const body = await req.body;
+            // Confirm The Request.body is not empty
+            if (!body) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: "error",
+                    status_code: StatusCodes.BAD_REQUEST,
+                    message: "the request body is empty"
+                });
+            }
+
+
+            const email = body.email;
+            const newPassword = body.new_password
+
+            // Confirmall required fields are not undefined
+            if (!email || !newPassword) {
+                return res.status(StatusCodes.BAD_REQUEST).json(
+                    {
+                        status: 'error',
+                        status_code: StatusCodes.BAD_REQUEST,
+                        message: 'email and password are both required'
+                    }
+                );
+            }
+
+
+            // Confirm chosen email do exist in db
+            const user = await userModel.findOne(
+                {
+                    email: email
+                },
+            );
+            if (!user) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: "error",
+                    status_code: StatusCodes.BAD_REQUEST,
+                    message: "invalid - email does not exist",
+                });
+            }
+
+            const hashedPassword = await bcrypt.hash(newPassword, 10)
+      
+            const filter = { email: user.email };
+            const update = { password: hashedPassword };
+
+            // enter new password
+            //https://mongoosejs.com/docs/tutorials/findoneandupdate.html for more information
+            const updatedUser = await userModel.findOneAndUpdate(filter, update, {
+                new: true
+            });
+
+
+            return res.status(StatusCodes.OK).json({
+                status: "success",
+                status_code: StatusCodes.OK,
+                message: "user password changed successfully",
+                data: {
+                    updatedUser,
+                }
+            });
+        } catch (error) {
+            return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                status: "error",
+                status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+                message: error.message
+            });
+        }
+    }
 
     // Deactivate account Method
     deactivateAccount(req, res) { }
