@@ -86,7 +86,6 @@ class AuthController {
         }
     }
 
-
     // Sign in Method
     async signIn(req, res) {
         try {
