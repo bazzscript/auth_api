@@ -142,6 +142,15 @@ class AuthController {
             }
 
 
+            // If user account is deactivated, return error user has been deactivated
+            if (user.isAccountActive === false) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: "error",
+                    status_code: StatusCodes.BAD_REQUEST,
+                    message: "error user has been deactivated, please contact support",
+                });
+            }
+
             const data = {
                 userId: user.id,
                 email: user.email,
@@ -210,7 +219,7 @@ class AuthController {
             }
 
             const hashedPassword = await bcrypt.hash(newPassword, 10)
-      
+
             const filter = { email: user.email };
             const update = { password: hashedPassword };
 
@@ -239,7 +248,69 @@ class AuthController {
     }
 
     // Deactivate account Method
-    deactivateAccount(req, res) { }
+    async deactivateAccount(req, res) {
+        try {
+            const body = await req.body;
+            // Confirm The Request.body is not empty
+            if (!body) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: "error",
+                    status_code: StatusCodes.BAD_REQUEST,
+                    message: "the request body is empty"
+                });
+            }
+
+            const user = body.user;
+            let reasonToDeactivate = body.reason
+
+
+            if (!reasonToDeactivate) {
+                reasonToDeactivate = 'non'
+            }
+
+            // Confirm chosen email do exist in db
+            const userExists = await userModel.findOne(
+                {
+                    email: user.email
+                },
+            );
+            if (!userExists) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: "error",
+                    status_code: StatusCodes.BAD_REQUEST,
+                    message: "invalid - email does not exist",
+                });
+            }
+
+
+            const filter = { email: user.email };
+            const update = { isAccountActive: false };
+
+
+            //https://mongoosejs.com/docs/tutorials/findoneandupdate.html for more information
+            const updatedUser = await userModel.findOneAndUpdate(filter, update, {
+                new: true
+            });
+
+
+            return res.status(StatusCodes.OK).json({
+                status: "success",
+                status_code: StatusCodes.OK,
+                message: "user  deactivated successfully",
+                data: {
+                    updatedUser,
+                }
+            });
+        } catch (error) {
+            return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                status: "error",
+                status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+                message: error.message
+            });
+        }
+
+
+    }
 }
 
 module.exports = AuthController;

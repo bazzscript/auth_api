@@ -22,6 +22,11 @@ const userSchema = new Schema({
         required: false,
         unique : true
     },
+    isAccountActive:{
+        type: Boolean,
+        required: false,
+        default: true,
+    }
 
 });
 const userModel = mongoose.model("user", userSchema);
